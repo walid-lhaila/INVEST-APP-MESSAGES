@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { MessagesModule } from './messages/messages.module';
+import { ConversationsModule } from './conversations/conversations.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { getMongoConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
-import { ChatGateway } from './messages/chat.gateway';
 
 @Module({
   imports: [
@@ -16,7 +15,7 @@ import { ChatGateway } from './messages/chat.gateway';
       useFactory: getMongoConfig,
       inject: [ConfigService],
     }),
-    MessagesModule,
+    ConversationsModule,
     AuthModule,
   ],
   controllers: [AppController],

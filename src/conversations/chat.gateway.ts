@@ -8,19 +8,17 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { MessagesService } from './messages.service';
+import { ConversationsService } from './conversations.service';
 
 @WebSocketGateway(4567)
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(ChatGateway.name);
-  private users: any[];
+  private users: { id: string; socketId: string }[] = [];
   @WebSocketServer() io: Server;
 
-  constructor(private readonly messagesService: MessagesService) {
-    this.users = [];
-  }
+  constructor(private readonly conversationsService: ConversationsService) {}
 
   afterInit() {
     this.logger.log('Initialized');
@@ -33,15 +31,10 @@ export class ChatGateway
         throw new UnauthorizedException('Missing authorization token');
       }
 
-      const userId = await this.messagesService.verifyToken(authHeader);
+      const userId = await this.conversationsService.verifyToken(authHeader);
+      this.users.push({ id: userId, socketId: client.id });
 
-      const user = {
-        id: userId,
-        socketId: client.id,
-      };
-
-      this.users.push(user);
-      this.logger.log(`User connected: ID ${user.id}`);
+      this.logger.log(`User connected: ID ${userId}`);
       this.logger.debug(`Connected clients: ${this.users.length}`);
     } catch (error) {
       this.logger.error('Unauthorized WebSocket connection:', error);
@@ -57,23 +50,34 @@ export class ChatGateway
   @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket, payload: string): Promise<void> {
     try {
-      const messageData =
-        typeof payload === 'string' ? JSON.parse(payload) : payload;
-      if (typeof messageData !== 'object' || Array.isArray(messageData)) {
-        this.logger.error('Invalid message format');
-        return;
+      const authHeader = client.handshake?.headers?.authorization;
+      if (!authHeader) {
+        throw new UnauthorizedException('Missing authorization token');
       }
 
-      const receiverClient = this.users.find(
-        (c) => messageData.receiverId === c.id,
+      const senderId = await this.conversationsService.verifyToken(authHeader);
+      const { receiverId, content } = JSON.parse(payload);
+
+      const updatedConversation = await this.conversationsService.addMessage(
+        senderId,
+        receiverId,
+        content,
       );
-      if (receiverClient) {
-        this.io
-          .to(receiverClient.socketId)
-          .emit('receiveMessage', messageData.content);
+
+      const receiverSocket = this.users.find((u) => u.id === receiverId);
+      if (receiverSocket) {
+        this.io.to(receiverSocket.socketId).emit('receiveMessage', {
+          senderId,
+          content,
+        });
       }
+      client.emit('messageSaved', {
+        success: true,
+        conversation: updatedConversation,
+      });
     } catch (error) {
-      this.logger.error('Error processing message:', error);
+      this.logger.error('Error sending message:', error);
+      client.emit('error', { message: 'Error sending message' });
     }
   }
 
