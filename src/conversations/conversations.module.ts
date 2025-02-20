@@ -4,7 +4,10 @@ import { ConversationsController } from './conversations.controller';
 import { AuthModule } from '../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import {Conversation, ConversationSchema} from './entity/conversations.entity';
+import {
+  Conversation,
+  ConversationSchema,
+} from './entity/conversations.entity';
 import { ChatGateway } from './chat.gateway';
 
 @Module({

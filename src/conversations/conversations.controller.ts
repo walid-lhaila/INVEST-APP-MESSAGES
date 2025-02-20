@@ -1,26 +1,21 @@
-import {
-  Body,
-  Controller,
-  Headers,
-  Post, UnauthorizedException,
-} from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
+import { MessagePattern } from '@nestjs/microservices';
 
-@Controller('conversations')
+@Controller()
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
-  @Post('send')
-  async sendMessage(
-    @Headers('authorization') authHeader: string,
-    @Body('receiverId') receiverId: string,
-    @Body('content') content: string,
-  ) {
-    if(!authHeader) {
-      throw new UnauthorizedException('Missing Authorization Token');
-    }
-    const senderId = await this.conversationsService.verifyToken(authHeader);
-    const conversation = await this.conversationsService.addMessage(senderId, receiverId, content);
-    return { message: 'Message sent successfully', conversation };
+  @MessagePattern('send-message')
+  async sendMessage(data: {
+    senderId: string;
+    receiverId: string;
+    content: string;
+  }) {
+    return await this.conversationsService.addMessage(
+      data.senderId,
+      data.receiverId,
+      data.content,
+    );
   }
 }
