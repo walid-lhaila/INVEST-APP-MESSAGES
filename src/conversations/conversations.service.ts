@@ -7,8 +7,8 @@ import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class ConversationsService {
   constructor(
-      @InjectModel(Conversation.name)
-      private conversationModel: Model<Conversation>,
+    @InjectModel(Conversation.name)
+    private conversationModel: Model<Conversation>,
   ) {}
 
   async verifyToken(token: string): Promise<string> {
@@ -36,7 +36,10 @@ export class ConversationsService {
   }
 
   async addMessage(senderId: string, receiverId: string, content: string) {
-    const conversation = await this.getOrCreateConversation(senderId, receiverId);
+    const conversation = await this.getOrCreateConversation(
+      senderId,
+      receiverId,
+    );
     conversation.messages.push({
       senderId,
       content,
@@ -49,13 +52,25 @@ export class ConversationsService {
 
   async getConversation(user1: string, user2: string) {
     const conversation = await this.conversationModel.findOne({
-      $or: [{ user1, user2}, {user1: user2, user2: user1}],
+      $or: [
+        { user1, user2 },
+        { user1: user2, user2: user1 },
+      ],
     });
-    if(!conversation) {
+    if (!conversation) {
       throw new Error('Conversation Not Found');
     }
     return conversation;
   }
 
+  async getAllConversation(userId: string) {
+    const allConversations = await this.conversationModel.find({
+      $or: [{ user1: userId }, { user2: userId }],
+    });
+    if(!allConversations) {
+      throw new Error('Conversations Not Found');
+    }
+    return allConversations;
+  }
 
 }
