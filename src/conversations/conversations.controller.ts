@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
-import {MessagePattern, Payload} from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller()
 export class ConversationsController {
@@ -19,12 +19,20 @@ export class ConversationsController {
     );
   }
 
-
   @MessagePattern({ cmd: 'get-conversation' })
-  async getConversation(@Payload() data: { autHeader: string; receiverId: string }) {
-    const {autHeader, receiverId} = data;
+  async getConversation(
+    @Payload() data: { autHeader: string; receiverId: string },
+  ) {
+    console.log('test');
+    const { autHeader, receiverId } = data;
 
     const senderId = await this.conversationsService.verifyToken(autHeader);
     return this.conversationsService.getConversation(senderId, receiverId);
+  }
+
+  @MessagePattern({ cmd: 'get-all-conversations' })
+  async getAllConversation(@Payload() { autHeader }: any) {
+    const userId = await this.conversationsService.verifyToken(autHeader);
+    return await this.conversationsService.getAllConversation(userId);
   }
 }

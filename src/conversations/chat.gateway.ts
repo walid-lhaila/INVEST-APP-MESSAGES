@@ -81,15 +81,5 @@ export class ChatGateway
     }
   }
 
-  @SubscribeMessage('joinRoom')
-  handleJoinRoom(client: Socket, room: string): void {
-    client.join(room);
-    this.logger.log(`Client id: ${client.id} joined room: ${room}`);
-  }
 
-  @SubscribeMessage('leaveRoom')
-  handleLeaveRoom(client: Socket, room: string): void {
-    client.leave(room);
-    this.logger.log(`Client id: ${client.id} left room: ${room}`);
-  }
 }
