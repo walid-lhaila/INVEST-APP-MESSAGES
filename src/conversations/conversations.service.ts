@@ -46,4 +46,16 @@ export class ConversationsService {
     await conversation.save();
     return conversation;
   }
+
+  async getConversation(user1: string, user2: string) {
+    const conversation = await this.conversationModel.findOne({
+      $or: [{ user1, user2}, {user1: user2, user2: user1}],
+    });
+    if(!conversation) {
+      throw new Error('Conversation Not Found');
+    }
+    return conversation;
+  }
+
+
 }
