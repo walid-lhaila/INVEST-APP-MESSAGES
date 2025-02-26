@@ -4,7 +4,7 @@ import { Document } from 'mongoose';
 @Schema()
 export class Message {
   @Prop({ required: true })
-  senderId: string;
+  senderUsername: string;
 
   @Prop({ required: true })
   content: string;
