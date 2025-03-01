@@ -15,7 +15,7 @@ export class ConversationsService {
   async verifyToken(token: string): Promise<string> {
     const jwtToken = token.split(' ')[1];
     const decodedToken = jwt.decode(jwtToken) as jwt.JwtPayload;
-    const username = decodedToken?.preferred_username;
+    const username = decodedToken.preferred_username;
     if (!username) {
       throw new Error('Invalid token: Username not found.');
     }
@@ -43,13 +43,9 @@ export class ConversationsService {
     return conversation;
   }
 
-  async getConversation(user1: string, user2: string) {
-    const conversation = await this.conversationModel.findOne({
-      $or: [
-        { user1, user2 },
-        { user1: user2, user2: user1 },
-      ],
-    });
+
+  async getConversationById(conversationId: string) {
+    const conversation = await this.conversationModel.findById(conversationId);
     if (!conversation) {
       throw new Error('Conversation Not Found');
     }

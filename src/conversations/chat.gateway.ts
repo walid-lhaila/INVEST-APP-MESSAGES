@@ -26,7 +26,8 @@ export class ChatGateway
 
   async handleConnection(client: Socket) {
     try {
-      const authHeader = client.handshake?.headers?.authorization;
+      let authHeader = client.handshake?.auth?.token;
+
       if (!authHeader) {
         throw new UnauthorizedException('Missing authorization token');
       }
@@ -50,7 +51,7 @@ export class ChatGateway
   @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket, payload: string): Promise<void> {
     try {
-      const authHeader = client.handshake?.headers?.authorization;
+      const authHeader = client.handshake?.auth?.token;
       if (!authHeader) {
         throw new UnauthorizedException('Missing authorization token');
       }
@@ -58,7 +59,7 @@ export class ChatGateway
       const senderId = await this.conversationsService.verifyToken(authHeader);
       const { receiverId, content } = JSON.parse(payload);
 
-      const updatedConversation = await this.conversationsService.addMessage(
+      const newMessage = await this.conversationsService.addMessage(
         senderId,
         receiverId,
         content,
@@ -66,20 +67,12 @@ export class ChatGateway
 
       const receiverSocket = this.users.find((u) => u.id === receiverId);
       if (receiverSocket) {
-        this.io.to(receiverSocket.socketId).emit('receiveMessage', {
-          senderId,
-          content,
-        });
+        this.io.to(receiverSocket.socketId).emit('receiveMessage', newMessage);
       }
-      client.emit('messageSaved', {
-        success: true,
-        conversation: updatedConversation,
-      });
     } catch (error) {
       this.logger.error('Error sending message:', error);
       client.emit('error', { message: 'Error sending message' });
     }
   }
-
 
 }

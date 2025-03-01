@@ -16,11 +16,11 @@ export class ConversationsController {
     );
   }
 
-  @MessagePattern({ cmd: 'get-conversation' })
-  async getConversation(@Payload() data: { autHeader: string; receiverUsername: string }) {
-    const { autHeader, receiverUsername } = data;
-    const senderUsername = await this.conversationsService.verifyToken(autHeader);
-    return this.conversationsService.getConversation(senderUsername, receiverUsername);
+  @MessagePattern({ cmd: 'get-conversation-by-id' })
+  async getConversationById(@Payload() data: { autHeader: string; conversationId: string }) {
+    const { autHeader, conversationId } = data;
+    await this.conversationsService.verifyToken(autHeader);
+    return this.conversationsService.getConversationById(conversationId);
   }
 
   @MessagePattern({ cmd: 'get-all-conversations' })
