@@ -30,8 +30,11 @@ export class ConversationsService {
       ],
     });
     if (!conversation) {
+      console.log(`No conversation found. Creating a new one.`);
       conversation = new this.conversationModel({ user1, user2, messages: [] });
       await conversation.save();
+    } else {
+      console.log(`Found existing conversation:`, conversation);
     }
     return conversation;
   }
