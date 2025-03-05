@@ -15,7 +15,7 @@ export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(ChatGateway.name);
-  private users: { id: string; socketId: string }[] = [];
+  private users: { username: string; socketId: string }[] = [];
   @WebSocketServer() io: Server;
 
   constructor(private readonly conversationsService: ConversationsService) {}
@@ -26,16 +26,18 @@ export class ChatGateway
 
   async handleConnection(client: Socket) {
     try {
-      const authHeader = client.handshake?.headers?.authorization;
+      const authHeader = client.handshake?.auth?.token;
+
       if (!authHeader) {
         throw new UnauthorizedException('Missing authorization token');
       }
 
-      const userId = await this.conversationsService.verifyToken(authHeader);
-      this.users.push({ id: userId, socketId: client.id });
+      const username = await this.conversationsService.verifyToken(authHeader);
+      this.users.push({ username, socketId: client.id });
 
-      this.logger.log(`User connected: ID ${userId}`);
+      this.logger.log(`User connected: ${username}`);
       this.logger.debug(`Connected clients: ${this.users.length}`);
+      this.logger.debug(`Current users: ${JSON.stringify(this.users)}`);
     } catch (error) {
       this.logger.error('Unauthorized WebSocket connection:', error);
       client.disconnect();
@@ -50,36 +52,37 @@ export class ChatGateway
   @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket, payload: string): Promise<void> {
     try {
-      const authHeader = client.handshake?.headers?.authorization;
+      const authHeader = client.handshake?.auth?.token;
       if (!authHeader) {
         throw new UnauthorizedException('Missing authorization token');
       }
 
-      const senderId = await this.conversationsService.verifyToken(authHeader);
-      const { receiverId, content } = JSON.parse(payload);
+      const senderUsername = await this.conversationsService.verifyToken(authHeader);
+      const { receiverUsername, content } = JSON.parse(payload);
 
-      const updatedConversation = await this.conversationsService.addMessage(
-        senderId,
-        receiverId,
-        content,
+      const newMessage = await this.conversationsService.addMessage(
+          senderUsername,
+          receiverUsername,
+          content
       );
 
-      const receiverSocket = this.users.find((u) => u.id === receiverId);
+      const receiverSocket = this.users.find(
+        (u) => u.username === receiverUsername,
+      );
+
       if (receiverSocket) {
         this.io.to(receiverSocket.socketId).emit('receiveMessage', {
-          senderId,
+          senderUsername,
+          receiverUsername,
           content,
+          timestamp: new Date().toISOString(),
+          isRead: false,
         });
       }
-      client.emit('messageSaved', {
-        success: true,
-        conversation: updatedConversation,
-      });
+
     } catch (error) {
       this.logger.error('Error sending message:', error);
       client.emit('error', { message: 'Error sending message' });
     }
   }
-
-
 }
