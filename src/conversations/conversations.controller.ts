@@ -42,4 +42,16 @@ export class ConversationsController {
     const username = await this.conversationsService.verifyToken(autHeader);
     return await this.conversationsService.getAllConversation(username);
   }
+
+  @MessagePattern({ cmd: 'mark-messages-as-read' })
+  async markMessagesAsRead(
+    @Payload() data: { autHeader: string; conversationId: string },
+  ) {
+    const { autHeader, conversationId } = data;
+    const username = await this.conversationsService.verifyToken(autHeader);
+    return this.conversationsService.markMessagesAsRead(
+      conversationId,
+      username,
+    );
+  }
 }

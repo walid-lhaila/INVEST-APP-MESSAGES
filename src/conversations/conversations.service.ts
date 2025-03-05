@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Conversation } from './entity/conversations.entity';
@@ -8,8 +7,8 @@ import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class ConversationsService {
   constructor(
-      @InjectModel(Conversation.name)
-      private conversationModel: Model<Conversation>,
+    @InjectModel(Conversation.name)
+    private conversationModel: Model<Conversation>,
   ) {}
 
   async verifyToken(token: string): Promise<string> {
@@ -39,9 +38,21 @@ export class ConversationsService {
     return conversation;
   }
 
-  async addMessage(senderUsername: string, receiverUsername: string, content: string) {
-    const conversation = await this.getOrCreateConversation(senderUsername, receiverUsername);
-    conversation.messages.push({ senderUsername, content, isRead: false, timestamp: new Date() });
+  async addMessage(
+    senderUsername: string,
+    receiverUsername: string,
+    content: string,
+  ) {
+    const conversation = await this.getOrCreateConversation(
+      senderUsername,
+      receiverUsername,
+    );
+    conversation.messages.push({
+      senderUsername,
+      content,
+      isRead: false,
+      timestamp: new Date(),
+    });
     await conversation.save();
     return conversation;
   }
@@ -63,5 +74,21 @@ export class ConversationsService {
       throw new Error('Conversations Not Found');
     }
     return allConversations;
+  }
+
+  async markMessagesAsRead(conversationId: string, username: string) {
+    const conversation = await this.conversationModel.findById(conversationId);
+    if (!conversation) {
+      throw new Error('Conversation Not Found');
+    }
+
+    conversation.messages = conversation.messages.map((message) => {
+      if (message.senderUsername !== username) {
+        message.isRead = true;
+      }
+      return message;
+    });
+    await conversation.save();
+    return conversation;
   }
 }
